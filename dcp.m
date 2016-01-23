@@ -444,12 +444,12 @@ switch lower(action),
     if (nargin > 5) 
       Td               = varargin{5};
     else
-      Td               = diffnc(T,dt);
+      Td               = [0, diff(T)/dt]; % Calculate differential assuming 0 initial conditions
     end
     if (nargin > 6) 
       Tdd              = varargin{6};
     else
-      Tdd              = diffnc(Td,dt);
+      Tdd              = [0, diff(Td)/dt]; % Calculate differential assuming 0 initial conditions
     end
     
     % the start state is the first state in the trajectory
