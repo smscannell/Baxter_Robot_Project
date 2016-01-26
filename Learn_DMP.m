@@ -11,7 +11,7 @@ t = data(:,1);  % t = timestamp
 % Trim data
 plot(x);
 lower = input('Please input lower bound ');
-higher = input('Please input higher bound ');
+higher = input('Please input upper bound ');
 x = x(lower:higher); % Trim data recording
 close all
 
@@ -20,8 +20,8 @@ x_init = x(1);
 x = x-x_init;       % Scale position values
 dt = 0.01;          % Position record rate
 goal = x(end);      % Goal location i.e. where the DMP will converge
-tau = t(higher)-t(lower);  % Time constant (roughly equal to movement time until convergence)
-n_rfs = 20;         % Number of basis functions
+tau = round(t(higher)-t(lower),2);  % Time constant (roughly equal to movement time until convergence)
+n_rfs = 10;         % Number of basis functions
 ID = 1;             % DMP ID
 
 % initialize the motor primitive and storage variables
