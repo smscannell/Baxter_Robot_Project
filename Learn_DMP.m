@@ -4,16 +4,24 @@ clc;
 global dcps
 %----------------------------DMP stuff------------------------------------%
 % Read csv file
-data = csvread('csvlist.dat');
-x = data(:,2);  % w1 joint position
-x = x-x(1);     % Scale so that start point is 0
+data = csvread('pool_shot',1);
+x = data(:,7);  % w1 joint position
 t = data(:,1);  % t = timestamp
 
+% Trim data
+plot(x);
+lower = input('Please input lower bound ');
+higher = input('Please input higher bound ');
+x = x(lower:higher); % Trim data recording
+close all
+
 % Set DMP parameters
+x_init = x(1);
+x = x-x_init;       % Scale position values
 dt = 0.01;          % Position record rate
 goal = x(end);      % Goal location i.e. where the DMP will converge
-tau = t(end)-t(1);  % Time constant (roughly equal to movement time until convergence)
-n_rfs = 10;         % Number of basis functions
+tau = t(higher)-t(lower);  % Time constant (roughly equal to movement time until convergence)
+n_rfs = 20;         % Number of basis functions
 ID = 1;             % DMP ID
 
 % initialize the motor primitive and storage variables
@@ -41,16 +49,16 @@ end
 
 % Plot DMP trajectories and ask user to verify
 subplot(1,3,1)
-plot(y1);
-hold on; plot(x); hold off;
+plot(rt,y1); xlabel('Time (seconds)'); ylabel('Position (radians)');
+hold on; plot(rt,x); hold off;
 subplot(1,3,2)
-plot(yd1);
+plot(rt,yd1); xlabel('Time (seconds)'); ylabel('Velocity (radians/s)');
 subplot(1,3,3)
-plot(ydd1);
+plot(rt,ydd1); xlabel('Time (seconds)'); ylabel('Acceleration (radians/s^2)');
 disp('Check DMP trajectories, press enter to continue')
 pause
+close all
 %---------------------PoWER Stuff---------------------------------------%
-% This file contains a sample implementation of PoWER
 % The required motor primitive code can be downloaded from
 % http://www-clmc.usc.edu/Resources/Software
 iter=1;
@@ -65,7 +73,10 @@ s_Return = [0 0];
 % Main loop
 while 0==0
     % Write DMP trajectory to csv file
-    csvwrite('DMP_out',[rt' y']);
+    M=[rt' (x_init+y)' data(lower:higher,9) data(lower:higher,17)];
+    fid=fopen('DMP_out','w'); fprintf(fid, '%s,','time','left_w1','left_gripper');
+    fprintf(fid, '%s\n','right_gripper'); fclose(fid);
+    dlmwrite('DMP_out',M,'-append')
     % Get error from user input
     Error(iter) = input('Enter ditsance of ball from target in mm ');
     % Calculate return based on error
@@ -114,7 +125,7 @@ while 0==0
             % Normalise
             var_dnom = var_dnom + Return(j);
         end
-		% apply and an upper and a lower limit to the exploration
+		% apply an upper and a lower limit to the exploration
         variance(:,iter+1) = max(var_nom./(var_dnom+1.e-10),.1.*variance(:,1));
         variance(:,iter+1) = min(variance(:,iter+1),10.*variance(:,1));
     end
@@ -145,11 +156,10 @@ while 0==0
     subplot(1,3,3)
     plot(ydd);
 
-    % Ask user if they want to continue to next rollout
-    cont = input('Continue to next rollout? (Y/N) ','s');
-    if cont == 'N'
-        break
-    end
-    close all
+%     % Ask user if they want to continue to next rollout
+%     cont = input('Continue to next rollout? (Y/N) ','s');
+%     if cont == 'N'
+%         break
+%     end
     iter = iter + 1;
 end
