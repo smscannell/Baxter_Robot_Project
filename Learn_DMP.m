@@ -20,7 +20,7 @@ x_init = x(1);
 x = x-x_init;       % Scale position values
 dt = 0.01;          % Position record rate
 goal = x(end);      % Goal location i.e. where the DMP will converge
-tau = t(higher)-t(lower);  % Time constant (roughly equal to movement time until convergence)
+tau = round(t(higher)-t(lower),2);  % Time constant (roughly equal to movement time until convergence)
 n_rfs = 20;         % Number of basis functions
 ID = 1;             % DMP ID
 
