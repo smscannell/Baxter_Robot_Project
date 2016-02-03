@@ -1,4 +1,4 @@
-function [ t,x ] = file_parse( col_t, col_x )
+function [ tau,x ] = file_parse( col_t, col_x )
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -12,6 +12,8 @@ plot(x);
 lower = input('Please input lower bound ');
 higher = input('Please input higher bound ');
 x = x(lower:higher); % Trim data recording
+t = t(lower:higher);
+tau = round(t(end)-t(1),2)
 close all
 
 end

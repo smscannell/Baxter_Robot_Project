@@ -5,14 +5,13 @@ global dcps
 %----------------------------DMP stuff------------------------------------%
 
 % Read csv file containing demonstration trajectory
-[t,x] = file_parse(1,7);
+[tau,x] = file_parse(1,7);
 
 % Set DMP parameters
 x_init = x(1);
 x = x-x_init;       % Scale position values
 dt = 0.01;          % step size (equal to sampling rate of joint trajectory)
 goal = x(end);      % Goal location i.e. where the DMP will converge
-tau = round(length(x)*dt,2); % Time constant (roughly equal to movement time until convergence)
 n_rfs = 20;         % Number of basis functions
 ID = 1;             % DMP ID
 
@@ -64,8 +63,9 @@ s_Return = [0 0];
 
 % Main loop
 while 0==0
-    % Write DMP trajectory to csv file
-    M=[rt' (x_init+y)' data(lower:higher,9) data(lower:higher,17)];
+    % Write DMP trajectory to csv file. Note: L and R gripper signals set
+    % to 0 and 100 respectively.
+    M=[rt' (x_init+y)' zeros(length(rt),1) 100*ones(length(rt),1)]; 
     fid=fopen('DMP_out','w'); fprintf(fid, '%s,','time','left_w1','left_gripper');
     fprintf(fid, '%s\n','right_gripper'); fclose(fid);
     dlmwrite('DMP_out',M,'-append')
