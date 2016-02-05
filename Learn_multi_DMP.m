@@ -12,7 +12,7 @@ x_init = x(1);
 x = x-x_init;       % Scale position values
 dt = 0.01;          % step size (equal to sampling rate of joint trajectory)
 goal = x(end);      % Goal location i.e. where the DMP will converge
-n_rfs = 20;         % Number of basis functions
+n_rfs = 10;         % Number of basis functions
 ID = 1;             % DMP ID
 
 % initialize the motor primitive and storage variables
@@ -35,8 +35,10 @@ dcp('set_goal',ID,goal,1);
 % run the motor primitive & precalculate the basis functions
 for i=1:length(rt)
 	% also store the values of the basis functions
-    [y1(i),yd1(i),ydd1(i),basis(:,i)] = dcp('run',ID,tau,dt);
+    [y(i),yd(i),ydd(i),basis(:,i)] = dcp('run',ID,tau,dt);
 end
+% Set initial trajectory
+y1=y; yd1=yd; ydd1=ydd;
 
 % Plot DMP trajectories and ask user to verify
 subplot(1,3,1)
@@ -123,20 +125,36 @@ while 0==0
     end
     
     current_param = param(:,iter+1);
-    % Add exploration to the new parameters
-    param(:,iter+1) = param(:,iter+1) + variance(:,iter+1).^.5.*randn(n_rfs,1);
+    
+    cont = input('Continue? (y/n): ','s');
+    if cont == 'y'
+        % Add exploration to the new parameters
+        param(:,iter+1) = param(:,iter+1) + variance(:,iter+1).^.5.*randn(n_rfs,1);
 
+        % apply the new parameters to the motor primitve
+        dcp('change',ID,'w',param(:,iter+1));
     
-    % apply the new parameters to the motor primitve
-    dcp('change',ID,'w',param(:,iter+1));
+        % reset the motor primitive
+        dcp('reset_state',ID);
+        dcp('set_goal',ID,goal,1);
     
-    % reset the motor primitive
-    dcp('reset_state',ID);
-    dcp('set_goal',ID,goal,1);
+        % run the motor primitive
+        for i=1:length(rt)
+            [y(i),yd(i),ydd(i)] = dcp('run',ID,tau,dt);
+        end
+    else
+        % apply the new parameters to the motor primitve
+        dcp('change',ID,'w',param(:,iter+1));
     
-    % run the motor primitive
-    for i=1:length(rt)
-        [y(i),yd(i),ydd(i)] = dcp('run',ID,tau,dt);
+        % reset the motor primitive
+        dcp('reset_state',ID);
+        dcp('set_goal',ID,goal,1);
+    
+        % run the motor primitive
+        for i=1:length(rt)
+            [y(i),yd(i),ydd(i)] = dcp('run',ID,tau,dt);
+        end
+        break
     end
     
     % Plot new trajectory
@@ -148,10 +166,16 @@ while 0==0
     subplot(1,3,3)
     plot(ydd);
 
-%     % Ask user if they want to continue to next rollout
-%     cont = input('Continue to next rollout? (Y/N) ','s');
-%     if cont == 'N'
-%         break
-%     end
     iter = iter + 1;
 end
+
+% Plot error values
+figure; subplot(1,2,1);
+plot(y);
+hold on; plot(y1); hold off;
+subplot(1,2,2);
+plot(Error)
+coeffs = polyfit(1:1:length(Error),Error,1);
+fittedX = linspace(1,length(Error),299);
+fittedY = polyval(coeffs, fittedX);
+hold on; plot(fittedX, fittedY, 'r-', 'Linewidth', 1.5); hold off;
