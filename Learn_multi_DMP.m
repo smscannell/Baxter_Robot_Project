@@ -3,17 +3,16 @@ close all;
 clc;
 global dcps
 %----------------------------DMP stuff------------------------------------%
-% Read csv file
-data = csvread('csvlist.dat');
-x = data(:,2);  % w1 joint position
-x = x-x(1);     % Scale so that start point is 0
-t = data(:,1);  % t = timestamp
+
+% Read csv file containing demonstration trajectory
+[tau,x] = file_parse(1,7);
 
 % Set DMP parameters
-dt = 0.01;          % Position record rate
+x_init = x(1);
+x = x-x_init;       % Scale position values
+dt = 0.01;          % step size (equal to sampling rate of joint trajectory)
 goal = x(end);      % Goal location i.e. where the DMP will converge
-tau = t(end)-t(1);  % Time constant (roughly equal to movement time until convergence)
-n_rfs = 10;         % Number of basis functions
+n_rfs = 20;         % Number of basis functions
 ID = 1;             % DMP ID
 
 % initialize the motor primitive and storage variables
@@ -36,27 +35,26 @@ dcp('set_goal',ID,goal,1);
 % run the motor primitive & precalculate the basis functions
 for i=1:length(rt)
 	% also store the values of the basis functions
-    [y(i),yd(i),ydd(i),basis(:,i)] = dcp('run',ID,tau,dt);
+    [y1(i),yd1(i),ydd1(i),basis(:,i)] = dcp('run',ID,tau,dt);
 end
 
 % Plot DMP trajectories and ask user to verify
 subplot(1,3,1)
-plot(y);
-hold on; plot(x); hold off;
+plot(rt,y1); xlabel('Time (seconds)'); ylabel('Position (radians)');
+hold on; plot(rt,x); hold off;
 subplot(1,3,2)
-plot(yd);
+plot(rt,yd1); xlabel('Time (seconds)'); ylabel('Velocity (radians/s)');
 subplot(1,3,3)
-plot(ydd);
+plot(rt,ydd1); xlabel('Time (seconds)'); ylabel('Acceleration (radians/s^2)');
 disp('Check DMP trajectories, press enter to continue')
 pause
 close all
 %---------------------PoWER Stuff---------------------------------------%
-% This file contains a sample implementation of PoWER
 % The required motor primitive code can be downloaded from
 % http://www-clmc.usc.edu/Resources/Software
 iter=1;
 param(:,1) = dcps(1).w;     % set initial parameters
-current_param = param(:,1);     % Mae
+current_param = param(:,1);     % Set current parameters to initial
 % set the initial variance
 variance(:,1) = 4000.*ones(n_rfs,1);
 variance(:,2) = 4000.*ones(n_rfs,1);
@@ -65,8 +63,12 @@ s_Return = [0 0];
 
 % Main loop
 while 0==0
-    % Write DMP trajectory to csv file
-    csvwrite('DMP_out',[rt' y']);
+    % Write DMP trajectory to csv file. Note: L and R gripper signals set
+    % to 0 and 100 respectively.
+    M=[rt' (x_init+y)' zeros(length(rt),1) 100*ones(length(rt),1)]; 
+    fid=fopen('DMP_out','w'); fprintf(fid, '%s,','time','left_w1','left_gripper');
+    fprintf(fid, '%s\n','right_gripper'); fclose(fid);
+    dlmwrite('DMP_out',M,'-append')
     % Get error from user input
     Error(iter) = input('Enter ditsance of ball from target in mm ');
     % Calculate return based on error
@@ -115,7 +117,7 @@ while 0==0
             % Normalise
             var_dnom = var_dnom + Return(j);
         end
-		% apply and an upper and a lower limit to the exploration
+		% apply an upper and a lower limit to the exploration
         variance(:,iter+1) = max(var_nom./(var_dnom+1.e-10),.1.*variance(:,1));
         variance(:,iter+1) = min(variance(:,iter+1),10.*variance(:,1));
     end
@@ -134,22 +136,22 @@ while 0==0
     
     % run the motor primitive
     for i=1:length(rt)
-        [y(i),yd(i),ydd(i)] = dcp('run',ID,T,dt);
+        [y(i),yd(i),ydd(i)] = dcp('run',ID,tau,dt);
     end
     
     % Plot new trajectory
+    subplot(1,3,1)
     plot(y);
-    hold on; plot(x); hold off;
+    hold on; plot(y1); hold off;
     subplot(1,3,2)
     plot(yd);
     subplot(1,3,3)
     plot(ydd);
 
-    % Ask user if they want to continue to next rollout
-    cont = input('Continue to next rollout? (Y/N) ','s');
-    if cont == 'N'
-        break
-    end
-    close all
+%     % Ask user if they want to continue to next rollout
+%     cont = input('Continue to next rollout? (Y/N) ','s');
+%     if cont == 'N'
+%         break
+%     end
     iter = iter + 1;
 end

@@ -21,7 +21,11 @@ x = x-x_init;       % Scale position values
 dt = 0.01;          % Position record rate
 goal = x(end);      % Goal location i.e. where the DMP will converge
 tau = round(t(higher)-t(lower),2);  % Time constant (roughly equal to movement time until convergence)
+<<<<<<< HEAD
 n_rfs = 10;         % Number of basis functions
+=======
+n_rfs = 20;         % Number of basis functions
+>>>>>>> origin/master
 ID = 1;             % DMP ID
 
 % initialize the motor primitive and storage variables
