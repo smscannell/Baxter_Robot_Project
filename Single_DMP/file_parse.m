@@ -13,7 +13,7 @@ lower = input('Please input lower bound ');
 higher = input('Please input higher bound ');
 x = x(lower:higher); % Trim data recording
 t = t(lower:higher);
-tau = round(t(end)-t(1),2)
+tau = round(t(end)-t(1),2);
 close all
 
 end
