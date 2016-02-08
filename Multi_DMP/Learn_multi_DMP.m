@@ -1,4 +1,4 @@
-clear all;
+clear;
 close all;
 %clc;
 global dcps
@@ -26,7 +26,7 @@ n_rfs_e1 = 10;               % Number of basis functions
 % initialize the motor primitive and storage variables for w1
 dcp('clear',1);                           % Clear any previous DMPs
 dcp('init',1,n_rfs_w1,'w1_joint',1);      % Initialise DMP (ID,nrfs,name,flag)
-% initialize the motor primitive and storage variables for E1
+% initialize the motor primitive and storage variables for e1
 dcp('clear',2);                           % Clear any previous DMPs
 dcp('init',2,n_rfs_e1,'e1_joint',1);      % Initialise DMP (ID,nrfs,name,flag)
 
@@ -83,9 +83,9 @@ while 0==0
     param_dnom = zeros(n_rfs_w1+n_rfs_e1,1);
     
     % calculate the expectations (the normalization is taken care of by the division)
-    % as importance sampling we take the 10 best rollouts
-    for i=1:min(iter,10)
-        % get the rollout number for the 10 best rollouts
+    % as importance sampling we take the 6 best rollouts
+    for i=1:min(iter,6)
+        % get the rollout number for the 6 best rollouts
         j = s_Return(end+1-i,2);
 		% calculate weighting
         temp_W = variance(:,j).^-1;
@@ -124,7 +124,29 @@ while 0==0
     current_param = param(:,iter+1);
     
     cont = input('Continue? (y/n): ','s');
-    if cont == 'y'
+    if cont == 'n'
+        % apply the new parameters to the w1 motor primitve
+        dcp('change',1,'w',param(1:n_rfs_w1,iter+1));
+        % apply the new parameters to the e1 motor primitve
+        dcp('change',2,'w',param(n_rfs_w1+1:n_rfs_w1+n_rfs_e1,iter+1));
+    
+        % reset the w1 motor primitive
+        dcp('reset_state',1);
+        dcp('set_goal',1,goal_w1,1);
+        % reset the e1 motor primitive
+        dcp('reset_state',2);
+        dcp('set_goal',2,goal_e1,1);
+    
+        % run the w1 motor primitive
+        for i=1:length(rt)
+            [y_w1(i),yd_w1(i),ydd_w1(i)] = dcp('run',1,tau,dt);
+        end
+        % run the e1 motor primitive
+        for i=1:length(rt)
+            [y_e1(i),yd_e1(i),ydd_e1(i)] = dcp('run',2,tau,dt);
+        end
+        break
+    else
         % Add exploration to the new parameters
         param(:,iter+1) = param(:,iter+1) + variance(:,iter+1).^.5.*randn(n_rfs_w1+n_rfs_e1,1);
 
@@ -148,28 +170,6 @@ while 0==0
         for i=1:length(rt)
             [y_e1(i),yd_e1(i),ydd_e1(i)] = dcp('run',2,tau,dt);
         end
-    else
-        % apply the new parameters to the w1 motor primitve
-        dcp('change',1,'w',param(1:n_rfs_w1,iter+1));
-        % apply the new parameters to the e1 motor primitve
-        dcp('change',2,'w',param(n_rfs_w1+1:n_rfs_w1+n_rfs_e1,iter+1));
-    
-        % reset the w1 motor primitive
-        dcp('reset_state',1);
-        dcp('set_goal',1,goal_w1,1);
-        % reset the e1 motor primitive
-        dcp('reset_state',1);
-        dcp('set_goal',1,goal_e1,1);
-    
-        % run the w1 motor primitive
-        for i=1:length(rt)
-            [y_w1(i),yd_w1(i),ydd_w1(i)] = dcp('run',1,tau,dt);
-        end
-        % run the e1 motor primitive
-        for i=1:length(rt)
-            [y_e1(i),yd_e1(i),ydd_e1(i)] = dcp('run',2,tau,dt);
-        end
-        break
     end
     
     % Plot new w1 trajectory
