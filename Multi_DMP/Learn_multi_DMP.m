@@ -54,8 +54,8 @@ iter=1;
 param(:,1) = [dcps(1).w; dcps(2).w];     % set initial parameters
 current_param = param(:,1);     % Set current parameters to initial
 % set the initial variance
-variance(:,1) = 4000.*ones(n_rfs_w1+n_rfs_e1,1);
-variance(:,2) = 4000.*ones(n_rfs_w1+n_rfs_e1,1);
+variance(:,1) = 400.*ones(n_rfs_w1+n_rfs_e1,1);
+variance(:,2) = 400.*ones(n_rfs_w1+n_rfs_e1,1);
 % Set up imporatance samping table
 s_Return = [0 0];
 
@@ -71,7 +71,7 @@ while 0==0
     Error(iter) = input('Enter ditsance of ball from target in mm ');
     close all
     % Calculate return based on error
-    Return(iter) = exp(-(abs(Error(iter))));
+    Return(iter) = exp(-(abs(Error(iter))))
     
     % add current return to importance sampling table and sort by increasing
     % return
@@ -118,7 +118,7 @@ while 0==0
         end
 		% apply an upper and a lower limit to the exploration
         variance(:,iter+1) = max(var_nom./(var_dnom+1.e-10),.1.*variance(:,1));
-        variance(:,iter+1) = min(variance(:,iter+1),10.*variance(:,1));
+        variance(:,iter+1) = min(variance(:,iter+1),variance(:,1));
     end
     
     current_param = param(:,iter+1);
